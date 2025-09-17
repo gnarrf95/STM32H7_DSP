@@ -1,0 +1,36 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+		
+        {
+			"name": "Debug STM32",
+			"request": "launch",
+			"cwd": "${workspaceFolder}",
+			"executable": "${command:cmake.launchTargetPath}",
+			"type": "cortex-debug",
+			"servertype": "stlink",
+			"showDevDebugOutput": "none",
+			"serialNumber": "",
+			"runToEntryPoint": "main",
+
+			"armToolchainPath": "${env:STM32CLT_PATH}/GNU-tools-for-STM32/bin",
+            "stlinkPath": "${env:STM32CLT_PATH}/STLink-gdb-server/bin/ST-LINK_gdbserver",
+            "stm32cubeprogrammer": "${env:STM32CLT_PATH}/STM32CubeProgrammer/bin",
+			"svdPath": "${env:STM32CLT_PATH}/STMicroelectronics_CMSIS_SVD/STM32H747_CM7.svd",
+
+			"serverArgs": [
+				"-l",
+				"1",
+				"-s",
+				"-m",
+				"0",
+				"-k"
+			],
+
+			"liveWatch": {
+                "enabled": true,
+                "samplesPerSecond": 4
+            },
+        }
+    ]
+}

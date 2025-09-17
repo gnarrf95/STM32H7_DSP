@@ -1,0 +1,138 @@
+cmake_minimum_required(VERSION 3.20)
+
+project("STM32H7_DSP" ASM C CXX)
+
+set(EXECUTABLE ${CMAKE_PROJECT_NAME})
+set(LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/STM32H747XIHX_FLASH.ld)
+
+set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+set(CMAKE_EXECUTABLE_SUFFIX ".elf")
+set(CMAKE_STATIC_LIBRARY_SUFFIX ".a")
+
+add_compile_options(
+	-mcpu=cortex-m7
+	-mfpu=fpv5-d16
+	-mfloat-abi=hard
+	--specs=nano.specs
+	-mno-unaligned-access
+
+	-ffunction-sections
+	-fdata-sections
+	-fstack-usage
+
+	-mthumb
+
+	$<$<COMPILE_LANGUAGE:CXX>:-Wno-psabi>
+	$<$<COMPILE_LANGUAGE:ASM>:-xassembler-with-cpp>
+
+	-Wall
+	-Wextra
+	-Wpedantic
+)
+
+add_link_options(
+	-mcpu=cortex-m7
+	-mfpu=fpv5-d16
+	-mfloat-abi=hard
+	--specs=nano.specs
+
+	-T${LINKER_SCRIPT}
+	--specs=nosys.specs
+	-Wl,-Map=${EXECUTABLE}.map
+	-Wl,--gc-sections
+
+	-Wl,--start-group
+	-lc
+	-lm
+	-Wl,--end-group
+
+	-static
+
+	-u_printf_float
+)
+
+add_subdirectory(Libraries)
+add_subdirectory(Drivers)
+
+set(SOURCES
+	Main/main.cpp
+	Main/syscalls.c
+	Main/sysmem.c
+)
+
+set(INCLUDES
+)
+
+set(LIBRARIES
+	CMSIS
+	Platform
+)
+
+set(DEFINES
+)
+
+add_executable(${EXECUTABLE} ${SOURCES})
+# target_include_directories(${EXECUTABLE} PRIVATE ${INCLUDES})
+target_link_libraries(${EXECUTABLE} PRIVATE ${LIBRARIES})
+# target_compile_definitions(${EXECUTABLE} PRIVATE ${DEFINES})
+
+# target_compile_options(${EXECUTABLE} PRIVATE
+# 	-mcpu=cortex-m7
+# 	-mfpu=fpv5-d16
+# 	-mfloat-abi=hard
+# 	--specs=nano.specs
+# 	-mno-unaligned-access
+
+# 	-ffunction-sections
+# 	-fdata-sections
+# 	-fstack-usage
+
+# 	-mthumb
+
+# 	$<$<COMPILE_LANGUAGE:CXX>:-Wno-psabi>
+# 	$<$<COMPILE_LANGUAGE:ASM>:-xassembler-with-cpp>
+
+# 	-Wall
+# 	-Wextra
+# 	-Wpedantic
+# )
+
+# target_link_options(${EXECUTABLE} PRIVATE
+# 	-mcpu=cortex-m7
+# 	-mfpu=fpv5-d16
+# 	-mfloat-abi=hard
+# 	--specs=nano.specs
+
+# 	-T${LINKER_SCRIPT}
+# 	--specs=nosys.specs
+# 	-Wl,-Map=${EXECUTABLE}.map
+# 	-Wl,--gc-sections
+
+# 	-Wl,--start-group
+# 	-lc
+# 	-lm
+# 	-Wl,--end-group
+
+# 	-static
+
+# 	-u_printf_float
+# )
+
+add_custom_command(TARGET ${EXECUTABLE} POST_BUILD
+	COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${EXECUTABLE}>
+)
+
+add_custom_command(TARGET ${EXECUTABLE} POST_BUILD
+	COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${EXECUTABLE}> ${EXECUTABLE}.hex
+)
+
+add_custom_command(TARGET ${EXECUTABLE} POST_BUILD
+	COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${EXECUTABLE}> ${EXECUTABLE}.bin
+)
