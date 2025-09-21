@@ -73,6 +73,7 @@ set(INCLUDES
 set(LIBRARIES
 	CMSIS
 	Platform
+	Board
 )
 
 set(DEFINES

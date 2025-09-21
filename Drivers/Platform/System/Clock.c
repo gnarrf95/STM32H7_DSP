@@ -107,7 +107,7 @@ void SystemClock_Init(void)
 
 	// Configure PLL2 VCO
 	RCC->PLLCFGR &= ~RCC_PLLCFGR_PLL2VCOSEL;
-	RCC->PLLCFGR |= RCC_PLLCFGR_PLL2RGE_Msk;
+	RCC->PLLCFGR &= ~RCC_PLLCFGR_PLL2RGE_Msk;
 
 	// Enable PLL2 outputs R, P and Q
 	RCC->PLLCFGR |= RCC_PLLCFGR_DIVP2EN;

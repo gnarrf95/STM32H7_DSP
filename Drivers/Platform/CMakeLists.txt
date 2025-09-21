@@ -8,6 +8,7 @@ set(SOURCES
 	Timer/TimerMicro.c
 	Serial/Serial.c
 	Bus/ControlBus.c
+	SerialAudio/AudioBus.c
 )
 
 add_library(Platform STATIC ${SOURCES})

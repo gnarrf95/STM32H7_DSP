@@ -64,12 +64,104 @@ void ControlBus_Init(void)
 	I2C4->TIMINGR = 0x10C0ECFF;
 
 	// I2C4->CR1 |= I2C_CR1_NOSTRETCH;
-	I2C4->CR1 |= I2C_CR1_ERRIE;
+	// I2C4->CR1 |= I2C_CR1_ERRIE;
 
 	NVIC_ClearPendingIRQ(I2C4_ER_IRQn);
 	NVIC_EnableIRQ(I2C4_ER_IRQn);
 
 	I2C4->CR1 |= I2C_CR1_PE;
+}
+
+//------------------------------------------------------------------------------
+//
+int ControlBus_SendBlocking(uint8_t address, const uint8_t* pDataBuffer, size_t dataSize, bool genStop)
+{
+	if ((pDataBuffer == NULL) || (dataSize == 0) || (dataSize > 255))
+	{
+		return -1;
+	}
+
+	I2C4->CR2 = 0;
+
+	I2C4->CR2 |= ((uint32_t)dataSize & 0xFF) << I2C_CR2_NBYTES_Pos;
+	I2C4->CR2 |= ((uint32_t)address) << I2C_CR2_SADD_Pos;
+
+	I2C4->TXDR = *pDataBuffer;
+	pDataBuffer++;
+
+	I2C4->CR2 |= I2C_CR2_START;
+
+	while (1)
+	{
+		if (I2C4->ISR & I2C_ISR_TXIS)
+		{
+			I2C4->TXDR = *pDataBuffer;
+			pDataBuffer++;
+		}
+
+		if (I2C4->ISR & I2C_ISR_TC)
+		{
+			break;
+		}
+
+		if (I2C4->ISR & I2C_ISR_NACKF)
+		{
+			I2C4->ICR |= I2C_ICR_NACKCF;
+			return -1;
+		}
+	}
+
+	if (genStop)
+	{
+		I2C4->CR2 |= I2C_CR2_STOP;
+
+		while ((I2C4->ISR & I2C_ISR_STOPF) == 0);
+		I2C4->ICR |= I2C_ICR_STOPCF;
+	}
+
+	return 0;
+}
+
+//------------------------------------------------------------------------------
+//
+int ControlBus_RecvBlocking(uint8_t address, uint8_t* pDataBuffer, size_t dataSize, bool genStop)
+{
+	if ((pDataBuffer == NULL) || (dataSize == 0) || (dataSize > 255))
+	{
+		return -1;
+	}
+
+	I2C4->CR2 = 0;
+
+	I2C4->CR2 |= ((uint32_t)dataSize & 0xFF) << I2C_CR2_NBYTES_Pos;
+	I2C4->CR2 |= ((uint32_t)address) << I2C_CR2_SADD_Pos;
+	I2C4->CR2 |= I2C_CR2_RD_WRN;
+
+	I2C4->CR2 |= I2C_CR2_START;
+
+	while (1)
+	{
+		if (I2C4->ISR & I2C_ISR_RXNE)
+		{
+			*pDataBuffer = I2C4->RXDR;
+			pDataBuffer++;
+		}
+
+		if (I2C4->ISR & I2C_ISR_TC)
+		{
+			break;
+		}
+	}
+
+	if (genStop)
+	{
+		I2C4->CR2 |= I2C_CR2_STOP;
+
+		while ((I2C4->ISR & I2C_ISR_STOPF) == 0);
+		I2C4->ICR |= I2C_ICR_STOPCF;
+	}
+
+	return 0;
 }
 
 //------------------------------------------------------------------------------
@@ -176,9 +268,8 @@ void BDMA_Channel0_IRQHandler(void)
 		I2C4->CR1 &= ~I2C_CR1_TXDMAEN;
 		BDMA->IFCR |= BDMA_IFCR_CTCIF0;
 
-		
-
-		gpTxCompleteCallback();
+		if (gpTxCompleteCallback)
+			gpTxCompleteCallback();
 	}
 
 	BDMA->IFCR |= BDMA_IFCR_CGIF0;
@@ -194,7 +285,8 @@ void BDMA_Channel1_IRQHandler(void)
 		I2C4->CR1 &= ~I2C_CR1_RXDMAEN;
 		BDMA->IFCR |= BDMA_IFCR_CTCIF1;
 
-		gpRxCompleteCallback();
+		if (gpRxCompleteCallback)
+			gpRxCompleteCallback();
 	}
 
 	BDMA->IFCR |= BDMA_IFCR_CGIF1;
@@ -204,5 +296,6 @@ void BDMA_Channel1_IRQHandler(void)
 //
 void I2C4_ER_IRQHandler(void)
 {
-	gpBusFailureCallback();
+	if (gpBusFailureCallback)
+		gpBusFailureCallback();
 }
