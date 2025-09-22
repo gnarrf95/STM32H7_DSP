@@ -7,8 +7,9 @@
 
 #include <System/Memory.h>
 
-static MEM_DMA_D1 int16_t gAudioRxBuffer[AUDIOBUS_BUFFER_LENGTH * 2];
-static MEM_DMA_D1 int16_t gAudioTxBuffer[AUDIOBUS_BUFFER_LENGTH * 2];
+// DMA Buffer Size: BufferSize * 2 (Stereo) * 2 (Double Buffering)
+static MEM_DMA_D1 int16_t gAudioRxBuffer[AUDIOBUS_BUFFER_LENGTH * 4];
+static MEM_DMA_D1 int16_t gAudioTxBuffer[AUDIOBUS_BUFFER_LENGTH * 4];
 
 static volatile int16_t* gpCurrentInputBuffer = NULL;
 static volatile int16_t* gpCurrentOutputBuffer = NULL;
@@ -144,7 +145,7 @@ int AudioBus_Start(void)
 	DMA1_Stream2->CR |= DMA_SxCR_TCIE;
 	DMA1_Stream2->CR |= DMA_SxCR_HTIE;
 
-	DMA1_Stream2->NDTR = (uint32_t)(AUDIOBUS_BUFFER_LENGTH * 2);
+	DMA1_Stream2->NDTR = (uint32_t)(AUDIOBUS_BUFFER_LENGTH * 4);
 	DMA1_Stream2->M0AR = (uint32_t)gAudioRxBuffer;
 	DMA1_Stream2->PAR = (uint32_t)&SAI1_Block_B->DR;
 
@@ -159,7 +160,7 @@ int AudioBus_Start(void)
 	DMA1_Stream3->CR |= DMA_SxCR_TCIE;
 	DMA1_Stream3->CR |= DMA_SxCR_HTIE;
 
-	DMA1_Stream3->NDTR = (uint32_t)(AUDIOBUS_BUFFER_LENGTH * 2);
+	DMA1_Stream3->NDTR = (uint32_t)(AUDIOBUS_BUFFER_LENGTH * 4);
 	DMA1_Stream3->M0AR = (uint32_t)gAudioTxBuffer;
 	DMA1_Stream3->PAR = (uint32_t)&SAI1_Block_A->DR;
 
@@ -252,8 +253,8 @@ void DMA1_Stream2_IRQHandler(void)
 
 	if (DMA1->LISR & DMA_LISR_TCIF2)
 	{
-		gpCurrentInputBuffer = &gAudioRxBuffer[AUDIOBUS_BUFFER_LENGTH];
-		gpCurrentOutputBuffer = &gAudioTxBuffer[AUDIOBUS_BUFFER_LENGTH];
+		gpCurrentInputBuffer = &gAudioRxBuffer[AUDIOBUS_BUFFER_LENGTH * 2];
+		gpCurrentOutputBuffer = &gAudioTxBuffer[AUDIOBUS_BUFFER_LENGTH * 2];
 		gNewBufferReady = true;
 
 		DMA1->LIFCR |= DMA_LIFCR_CTCIF2;
