@@ -1,5 +1,6 @@
 set(SOURCES
 	LED/led.c
+	button/button.c
 
 	WM8994/wm8994_bus.c
 	WM8994/wm8994.c
