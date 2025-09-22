@@ -36,7 +36,7 @@ void led_Write(led_Index_t index, bool set)
             return;
     }
 
-    if (set)
+    if (set == false)
     {
         GPIOI->ODR |= (1 << pos);
     }
